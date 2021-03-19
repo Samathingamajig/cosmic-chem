@@ -58,8 +58,11 @@ class Side:
                 simple_elements.add(symbol)
         return simple_elements
     
+    def get_compounds_with_symbol(self, symbol: str) -> list(Compound):
+        return [comp for comp in self.compounds if comp.amount_of(symbol) > 0]
+
     def get_se_compound(self, symbol: str) -> Compound:
-        return [comp for comp in self.compounds if comp.amount_of(symbol) > 0][0]
+        return self.get_compounds_with_symbol(symbol)[0]
     
     def totals(self) -> dict:
         totals = {}
