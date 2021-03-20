@@ -123,6 +123,10 @@ def repl() -> None:
         if inp == SENTINEL: break
         print(balance(inp))
 
+def print_logo() -> None:
+    with open("cosmic_chem.txt", "r") as cc_file:
+        print(cc_file.read())
+
 if __name__ == "__main__":
     pass
     # repl()
