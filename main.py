@@ -1,4 +1,3 @@
-import enum
 import re
 import sympy as sp
 from sympy.matrices.dense import MutableDenseMatrix
