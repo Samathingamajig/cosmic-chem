@@ -1,6 +1,7 @@
 import re
 import sympy as sp
 from sympy.matrices.dense import MutableDenseMatrix
+import time
 
 # Used for regex's
 SYMBOL = r"[A-Z][a-z]?"
@@ -10,6 +11,9 @@ GROUPED_ELEMENTS = rf"\((?:{SYMBOL}{OPT_NUMS})+\)"
 COMPOUND = rf"(?:(?:{SYMBOL}|{GROUPED_ELEMENTS}){OPT_NUMS})+"
 SIDE = rf"(?:{COMPOUND}{OPT_SPACES}\+)*{OPT_SPACES}{COMPOUND}"
 CHEMICAL_EQUATION = rf"{SIDE}{OPT_SPACES}=>{OPT_SPACES}{SIDE}"
+
+def pause() -> None:
+    time.sleep(2)
 
 def validate_input(chem_eq: str) -> str:
     chem_eq = chem_eq.strip()
@@ -69,7 +73,7 @@ def filter_parentheses(chem_eq: str):
         return "+".join(new_comps)
     return f"{fp_side(left_comps)}=>{fp_side(right_comps)}"
 
-def chem_eq_to_matrix(chem_eq: str) -> MutableDenseMatrix:
+def chem_eq_to_matrix(chem_eq: str, explain: bool = False) -> MutableDenseMatrix:
     elements = list(set(re.findall(r"[A-Z][a-z]?", chem_eq)))
     # print(elements)
     all_compounds = list(re.split(r"\+|=\>", chem_eq))
@@ -88,16 +92,42 @@ def chem_eq_to_matrix(chem_eq: str) -> MutableDenseMatrix:
             total_quantity = sum(int(quan or 1) for quan in re.findall(rf"{ele}(?![a-z])(\d*)", comp))
             matrix[row, col] = -1 * total_quantity
     # print(repr(matrix))
+    if explain:
+        print("Now we convert it into a matrix")
+        pause()
+        print(f"Where the columns are: [{', '.join(all_compounds)}]")
+        print(f"and the rows are: [{', '.join(elements)}]")
+        print("(negative numbers on the right side means that it's on the right side of the equation)")
+        pause()
+        print(repr(matrix))
+        pause()
     return matrix
 
-def get_reduced_row_echelon_form(matrix: MutableDenseMatrix) -> MutableDenseMatrix:
-    return matrix.rref()[0]
+def get_reduced_row_echelon_form(matrix: MutableDenseMatrix, explain: bool = False) -> MutableDenseMatrix:
+    rref = matrix.rref()[0]
+    if explain:
+        print("Then we convert the matrix into \"Row Reduced Echelon Form\" (using a builtin function), which looks like:")
+        pause()
+        print(repr(rref))
+        pause()
+    return rref
 
-def get_coefficients(rref: MutableDenseMatrix, chem_eq):
+def get_coefficients(rref: MutableDenseMatrix, chem_eq: str, explain: bool = False) -> list:
     all_compounds = list(re.split(r"\+|=\>", chem_eq))
     coefficients = [1] * len(all_compounds)
     denoms = [num.denominator() for num in rref.col(-1)]
     the_lcm = sp.lcm(denoms)
+    if explain:
+        print("Next, we extract the denominators of the last column from the rref:")
+        pause()
+        print(denoms)
+        pause()
+        print(f"Then we find the least common multiple of the denominators, which is: {the_lcm}")
+        pause()
+        print("After that, we multiply each value in that last column by the LCM, and the first coefficient is the first value, the second is the second value, etc.")
+        pause()
+        print("The coefficient of the last compound is just the LCM")
+        pause()
     for i, _ in enumerate(coefficients[:-1]):
         numer, denom = rref[i,-1].p, rref[i,-1].q
         if numer == 0:
@@ -106,19 +136,36 @@ def get_coefficients(rref: MutableDenseMatrix, chem_eq):
     coefficients[-1] = the_lcm
     return coefficients
 
-def balance(chem_eq: str) -> str:
+def balance(chem_eq: str, explain: bool = False) -> tuple:
     chem_eq = chem_eq.strip()
     if (error := validate_input(chem_eq)) != "":
         return [], error
     spaceless = "".join(char for char in chem_eq if char != " ")
     no_parens = filter_parentheses(spaceless)
-    matrix = chem_eq_to_matrix(no_parens)
-    rref = matrix.rref()[0]
+    if explain:
+        pause()
+        print("If there were parentheses, they are removed now (with proper multiplication)")
+        print(no_parens)
+        pause()
+    matrix = chem_eq_to_matrix(no_parens, explain)
+    rref = get_reduced_row_echelon_form(matrix, explain)
     # print(repr(rref))
-    coefficients = get_coefficients(rref, no_parens)
+    coefficients = get_coefficients(rref, no_parens, explain)
     if len([coeff for coeff in coefficients if coeff != 0]) != len(coefficients):
         return [], "This equation either has no solutions or an infinite number of solutions"
     return coefficients, ''
+
+def pretty_balanced_chem_eq(chem_eq: str, coefficients: list) -> str:
+    left, right = chem_eq.split("=>")
+    left_comps, right_comps = left.split("+"), right.split("+")
+    def pbce(comps: list, coeffs: list) -> str:
+        output = []
+        for i, comp in enumerate(comps):
+            coeff = coeffs[i]
+            output.append(f"{coeff if coeff > 1 else ''}{comp}")
+        return " + ".join(output)
+    left, right = pbce(left_comps, coefficients[:len(left_comps)]), pbce(right_comps, coefficients[len(left_comps):])
+    return f"{left} => {right}"
 
 def repl() -> None:
     SENTINEL = str(-1)
@@ -126,7 +173,13 @@ def repl() -> None:
     while True:
         inp = input()
         if inp == SENTINEL: break
-        print(balance(inp))
+        coeffs, error = balance(inp)
+        if error != "":
+            print(error)
+            continue
+        print(coeffs)
+        spaceless = "".join(char for char in inp if char != " ")
+        print(pretty_balanced_chem_eq(spaceless, coeffs))
 
 def print_logo() -> None:
     with open("cosmic_chem.txt", "r") as cc_file:
