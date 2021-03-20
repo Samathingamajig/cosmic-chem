@@ -37,7 +37,36 @@ def validate_input(chem_eq: str) -> str:
         return f"You have nested (unsupported) or unclosed parentheses at index {nested_or_unclosed_parens.start()} (starting from 0)"
     if (unexpected_close_parens := re.search(r"^[^\(]\)|(?<=\))[^\(\)\n]*\)", chem_eq)) is not None:
         return f"Unexpected close parentheses at index {unexpected_close_parens.end() - 1} (starting from 0)"
+    if (number_starts_with_zero := re.search(r"(?<=[A-Za-z\)])0")) is not None:
+        return f"A subscript/coefficient cannot start with zero/0, index {number_starts_with_zero.end() - 1} (starting from 0)"
     return "You have an error, but we don't know what exactly it is"
+
+def filter_parentheses(chem_eq: str):
+    left, right = chem_eq.split("=>")
+    left_comps, right_comps = left.split("+"), right.split("+")
+    def fp_side(comps):
+        new_comps = []
+        for comp in comps:
+            minis = re.findall(rf"{SYMBOL}{OPT_NUMS}|{GROUPED_ELEMENTS}{OPT_NUMS}", comp)
+            new_comp = ""
+            for mini in minis:
+                if mini[0] != "(":
+                    new_comp += mini
+                    continue
+                multiply = int(re.search(r"\d+$", mini).group())
+                mini_eles = re.findall(rf"{SYMBOL}{OPT_NUMS}", re.search(rf"\(((?:{SYMBOL}{OPT_NUMS})+)\)", mini).group())
+                for i, mini_ele in enumerate(mini_eles):
+                    ele = re.search(SYMBOL, mini_ele).group()
+                    coeff = 1
+                    coeff_search = re.search(r"\d+", mini_ele)
+                    if coeff_search is not None:
+                        coeff = int(coeff_search.group())
+                    coeff *= multiply
+                    mini_eles[i] = f"{ele}{coeff if coeff > 1 else ''}"
+                new_comp += "".join(mini_eles)
+            new_comps.append(new_comp)
+        return "+".join(new_comps)
+    return f"{fp_side(left_comps)}=>{fp_side(right_comps)}"
 
 def chem_eq_to_matrix(chem_eq: str) -> MutableDenseMatrix:
     elements = list(set(re.findall(r"[A-Z][a-z]?", chem_eq)))
@@ -77,14 +106,13 @@ def get_coefficients(rref: MutableDenseMatrix, chem_eq):
 
 def balance(chem_eq: str) -> str:
     chem_eq = chem_eq.strip()
-    error = validate_input(chem_eq)
-    if error != "":
+    if (error := validate_input(chem_eq)) != "":
         return error
     spaceless = "".join(char for char in chem_eq if char != " ")
-    # no_parens = filter_parentheses(spaceless)
-    matrix = chem_eq_to_matrix(spaceless)
+    no_parens = filter_parentheses(spaceless)
+    matrix = chem_eq_to_matrix(no_parens)
     rref = matrix.rref()[0]
-    coefficients = get_coefficients(rref, chem_eq)
+    coefficients = get_coefficients(rref, no_parens)
     return coefficients
 
 def repl() -> None:
