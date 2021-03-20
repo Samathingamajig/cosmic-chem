@@ -8,7 +8,7 @@ class TestFull(unittest.TestCase):
             ["BaCl2+K3PO4=>Ba3P2O8+KCl", [3, 2, 1, 6]]
         ]
         for inp, out in tests:
-            self.assertEqual(balance(inp), out)
+            self.assertEqual(balance(inp), (out, ''))
 
 if __name__ == "__main__":
     unittest.main()

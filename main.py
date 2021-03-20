@@ -109,14 +109,16 @@ def get_coefficients(rref: MutableDenseMatrix, chem_eq):
 def balance(chem_eq: str) -> str:
     chem_eq = chem_eq.strip()
     if (error := validate_input(chem_eq)) != "":
-        return error
+        return [], error
     spaceless = "".join(char for char in chem_eq if char != " ")
     no_parens = filter_parentheses(spaceless)
     matrix = chem_eq_to_matrix(no_parens)
     rref = matrix.rref()[0]
     # print(repr(rref))
     coefficients = get_coefficients(rref, no_parens)
-    return coefficients
+    if len([coeff for coeff in coefficients if coeff != 0]) != len(coefficients):
+        return [], "This equation either has no solutions or an infinite number of solutions"
+    return coefficients, ''
 
 def repl() -> None:
     SENTINEL = str(-1)
