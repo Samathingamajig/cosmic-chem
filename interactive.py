@@ -2,6 +2,7 @@ from main import *
 import random
 import os
 import re
+import sympy as sp
 
 equations = set()
 
@@ -10,6 +11,12 @@ def clear_screen() -> None:
 
 def press_enter_to_menu() -> None:
     input("\nPress enter to return to the menu")
+
+def load_equations() -> None:
+    global equations
+    with open("equations.txt", "r") as file:
+        equations = set(file.read().splitlines())
+        equations = [eq for eq in equations if len(eq) > 0 and eq[0] != "#"]
 
 def solve_equations() -> None:
     print("Time to solve some equations")
@@ -84,8 +91,35 @@ def quiz() -> None:
     press_enter_to_menu()
 
 def validate_solutions() -> None:
-    print("Validated")
-    input()
+    print("It's time to validate equations (check if you balanced it correctly)")
+    print()
+    SENTINEL = "stop"
+    while True:
+        equation = input(f"\nEnter a chemical equation (without the coefficients) (type \"{SENTINEL}\" to stop)\n")
+        if equation == SENTINEL: break
+        coeffs, error = balance(equation)
+        if error != "":
+            print(error)
+            continue
+        compound_count = len(re.split(r"\+|\=\>", equation))
+        list_validator = r"^(?:\d+\s+){" + str(compound_count - 1) + r"}\d+$"
+        print("What coefficients did you find?")
+        while re.match(list_validator, (inp := input())) is None:
+            if inp.lower() == SENTINEL: break
+            print(f"Invalid input! Your list should only contain numbers, be separated by a single space, and be of length {compound_count}")
+        if inp.lower() == SENTINEL: break
+        official_answer, _ = balance(equation)
+        given_answer = [int(n) for n in inp.split(" ")]
+        if official_answer == given_answer:
+            print("You were correct!")
+        else:
+            the_gcd = sp.gcd(given_answer)
+            if [n/the_gcd for n in given_answer] == official_answer:
+                print(f"You forgot to reduce the coefficents to their minimal value! {', '.join(str(n) for n in official_answer)}")
+            else:
+                print(f"Incorrect! The correct coefficients are {', '.join(str(n) for n in official_answer)}")
+        print(pretty_balanced_chem_eq(equation, official_answer))
+    press_enter_to_menu()
 
 def about() -> None:
     parts = {
@@ -146,12 +180,6 @@ def menu() -> None:
         print()
         print("Goodbye!")
         exit(0)
-
-def load_equations() -> None:
-    global equations
-    with open("equations.txt", "r") as file:
-        equations = set(file.read().splitlines())
-        equations = [eq for eq in equations if len(eq) > 0 and eq[0] != "#"]
 
 if __name__ == "__main__":
     menu()

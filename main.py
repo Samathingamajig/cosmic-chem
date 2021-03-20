@@ -124,7 +124,7 @@ def get_coefficients(rref: MutableDenseMatrix, chem_eq: str, explain: bool = Fal
         pause()
         print(f"Then we find the least common multiple of the denominators, which is: {the_lcm}")
         pause()
-        print("After that, we multiply each value in that last column by the LCM, and the first coefficient is the first value, the second is the second value, etc.")
+        print("After that, we multiply each value in that last column by the LCM (and keep the absolute value), and the first coefficient is the first value, the second is the second value, etc.")
         pause()
         print("The coefficient of the last compound is just the LCM")
         pause()
@@ -156,6 +156,7 @@ def balance(chem_eq: str, explain: bool = False) -> tuple:
     return coefficients, ''
 
 def pretty_balanced_chem_eq(chem_eq: str, coefficients: list) -> str:
+    chem_eq = "".join(chem_eq.split(" "))
     left, right = chem_eq.split("=>")
     left_comps, right_comps = left.split("+"), right.split("+")
     def pbce(comps: list, coeffs: list) -> str:
