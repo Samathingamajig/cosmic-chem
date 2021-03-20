@@ -20,6 +20,8 @@ def validate_input(chem_eq: str) -> str:
 
     if (arrow_count := chem_eq.count("=>")) != 1:
         return f"This equation has {arrow_count} arrows ( => ), but it needs exactly 1 arrow"
+    if (extra_arrow_parts := re.search(r"=(?!\>)|(?<!\=)\>", chem_eq)) is not None:
+        return f"Unexpected character \"{extra_arrow_parts.group()}\" at index {extra_arrow_parts.start()} (starting from 0)"
     ALLOWED_CHARS = r"A-Za-z0-9+=>\ \(\)"
     if (bad_chars := re.search(rf"[^{ALLOWED_CHARS}]", chem_eq)) is not None:
         return f"Unexpected character \"{bad_chars.group()}\" at index {bad_chars.start()} (starting from 0)"
@@ -86,6 +88,7 @@ def chem_eq_to_matrix(chem_eq: str) -> MutableDenseMatrix:
             # print(row, col, comp, ele, re.findall(rf"{ele}(?![a-z])(\d*)", comp))
             total_quantity = sum(int(quan or 1) for quan in re.findall(rf"{ele}(?![a-z])(\d*)", comp))
             matrix[row, col] = -1 * total_quantity
+    # print(repr(matrix))
     return matrix
 
 def get_reduced_row_echelon_form(matrix: MutableDenseMatrix) -> MutableDenseMatrix:
@@ -112,6 +115,7 @@ def balance(chem_eq: str) -> str:
     no_parens = filter_parentheses(spaceless)
     matrix = chem_eq_to_matrix(no_parens)
     rref = matrix.rref()[0]
+    # print(repr(rref))
     coefficients = get_coefficients(rref, no_parens)
     return coefficients
 
