@@ -1,3 +1,2 @@
 language="python"
-run="python3 interactive.py"
-onBoot="pip3 install -r requirements.txt"
+run="python3 install.py && python3 interactive.py"
