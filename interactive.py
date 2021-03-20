@@ -87,7 +87,7 @@ def quiz() -> None:
         print(f"Current score => Correct: {correct} ; Incorrect: {incorrect} ; Total: {total} ; Correct/Incorrect ratio: {correct / incorrect if incorrect != 0 else 'N/A'} ; Grade: {correct / total * 100}")
         print()
     print()
-    print(f"Final score => Correct: {correct} ; Incorrect: {incorrect} ; Total: {total} ; Correct/Incorrect ratio: {correct / incorrect if incorrect != 0 else 'N/A'} ; Grade: {correct / total * 100}")
+    print(f"Final score => Correct: {correct} ; Incorrect: {incorrect} ; Total: {total} ; Correct/Incorrect ratio: {correct / incorrect if incorrect != 0 else 'N/A'} ; Grade: {correct / total * 100 if total > 0 else 'N/A'}")
     press_enter_to_menu()
 
 def validate_solutions() -> None:
@@ -95,21 +95,20 @@ def validate_solutions() -> None:
     print()
     SENTINEL = "stop"
     while True:
-        equation = input(f"\nEnter a chemical equation (without the coefficients) (type \"{SENTINEL}\" to stop)\n")
+        equation = input(f"\nEnter a chemical equation (with your coefficents) (type \"{SENTINEL}\" to stop)\n")
         if equation == SENTINEL: break
-        coeffs, error = balance(equation)
-        if error != "":
+        chem_eq = "".join(re.split(r"^\d+|[\s\+\>]\d+", equation))
+        equation = "".join(equation.split(" "))
+        given_answer = []
+        seen_a_one = False
+        for comp in re.split(r"\+|\=\>", equation):
+            coeff = re.match("^\d*", comp).group()
+            if coeff == "1": seen_a_one = True
+            given_answer.append(int(coeff) if len(coeff) > 0 else 1)
+        official_answer, error = balance(chem_eq)
+        if error:
             print(error)
             continue
-        compound_count = len(re.split(r"\+|\=\>", equation))
-        list_validator = r"^(?:\d+\s+){" + str(compound_count - 1) + r"}\d+$"
-        print("What coefficients did you find?")
-        while re.match(list_validator, (inp := input())) is None:
-            if inp.lower() == SENTINEL: break
-            print(f"Invalid input! Your list should only contain numbers, be separated by a single space, and be of length {compound_count}")
-        if inp.lower() == SENTINEL: break
-        official_answer, _ = balance(equation)
-        given_answer = [int(n) for n in inp.split(" ")]
         if official_answer == given_answer:
             print("You were correct!")
         else:
@@ -118,7 +117,8 @@ def validate_solutions() -> None:
                 print(f"You forgot to reduce the coefficents to their minimal value! {', '.join(str(n) for n in official_answer)}")
             else:
                 print(f"Incorrect! The correct coefficients are {', '.join(str(n) for n in official_answer)}")
-        print(pretty_balanced_chem_eq(equation, official_answer))
+        if seen_a_one: print("(remember: a coefficent of 1 should be left as a blank)")
+        print(pretty_balanced_chem_eq(chem_eq, official_answer))
     press_enter_to_menu()
 
 def about() -> None:

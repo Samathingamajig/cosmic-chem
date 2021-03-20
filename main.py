@@ -19,7 +19,12 @@ def validate_input(chem_eq: str) -> str:
     chem_eq = chem_eq.strip()
     # Giant regex to test chemical equation
     test = re.match(rf"^{CHEMICAL_EQUATION}$", chem_eq)
-    if test is not None: return ""
+    if test is not None:
+        left, right = chem_eq.split("=>")
+        les, res = set(re.findall(SYMBOL, left)), set(re.findall(SYMBOL, right))
+        if les != res:
+            return f"You don't have all the elements on both sides! Missing elements: {(les | res).difference(les & res)}"
+        return ""
 
     if (arrow_count := chem_eq.count("=>")) != 1:
         return f"This equation has {arrow_count} arrows ( => ), but it needs exactly 1 arrow"
@@ -58,7 +63,7 @@ def filter_parentheses(chem_eq: str):
                 if mini[0] != "(":
                     new_comp += mini
                     continue
-                multiply = int(re.search(r"\d+$", mini).group())
+                multiply = int(re.search(r"\d*$", mini).group() or 1)
                 mini_eles = re.findall(rf"{SYMBOL}{OPT_NUMS}", re.search(rf"\(((?:{SYMBOL}{OPT_NUMS})+)\)", mini).group())
                 for i, mini_ele in enumerate(mini_eles):
                     ele = re.search(SYMBOL, mini_ele).group()
