@@ -1,11 +1,26 @@
 #!/usr/local/bin/python3.9
 
-def lcm(num1: int, num2: int) -> int:
-    lcm = max(num1, num2)
+def lcm(*nums: int) -> int:
+    lcm = max(nums)
     while True:
-        if lcm % num1 == 0 and lcm % num2 == 0:
-            return lcm
+        failure = False
+        for num in nums:
+            failure = lcm % num != 0
+            if failure: break
+        if not failure: return lcm
         lcm += 1
+
+def gcd(*nums: int) -> int:
+    gcd = 1
+    new_gcd = gcd
+    while new_gcd <= min(nums):
+        failure = False
+        for num in nums:
+            failure = num % new_gcd != 0
+            if failure: break
+        if not failure: gcd = new_gcd
+        new_gcd += 1
+    return gcd
 
 class Compound:
     def __init__(self):
@@ -17,6 +32,11 @@ class Compound:
             self.elements[symbol] += quantity
         else:
             self.elements[symbol] = quantity
+    
+    def amount_of_raw(self, symbol: str) -> int:
+        if symbol in self.elements.keys():
+            return self.elements[symbol]
+        return 0
     
     def amount_of(self, symbol: str) -> int:
         if symbol in self.elements.keys():
@@ -45,7 +65,7 @@ class Side:
     def is_balanced_with(self, other) -> bool:
         return self.totals() == other.totals()
     
-    def simple_elements(self) -> set:
+    def simple_elements(self) -> set[str]:
         symbols = self.totals().keys()
         simple_elements = set()
         for symbol in symbols:
@@ -58,11 +78,11 @@ class Side:
                 simple_elements.add(symbol)
         return simple_elements
     
-    def get_compounds_with_symbol(self, symbol: str) -> list(Compound):
-        return [comp for comp in self.compounds if comp.amount_of(symbol) > 0]
+    def get_compounds_with_symbol(self, symbol: str) -> set[Compound]:
+        return set(comp for comp in self.compounds if comp.amount_of(symbol) > 0)
 
     def get_se_compound(self, symbol: str) -> Compound:
-        return self.get_compounds_with_symbol(symbol)[0]
+        return list(self.get_compounds_with_symbol(symbol))[0]
     
     def totals(self) -> dict:
         totals = {}
@@ -109,8 +129,14 @@ class ChemicalEquation:
     def totals(self) -> dict:
         return self.left.totals(), self.right.totals()
     
-    def super_simple_elements(self) -> set:
+    def super_simple_elements(self) -> set[str]:
         return self.left.simple_elements() & self.right.simple_elements()
+    
+    def non_sses(self) -> set[str]:
+        return (
+            set(self.left.totals().keys())
+            .union(set(self.right.totals().keys()))
+            ).difference(self.super_simple_elements())
     
     def balance_sses(self) -> None:
         if self.sses_are_balanced(): return
@@ -129,16 +155,25 @@ class ChemicalEquation:
     def balance(self) -> None:
         if self.is_balanced(): return
         self.balance_sses()
-        lt, rt = self.totals()
+        # lt, rt = self.totals()
+        # non_sses = self.non_sses()
+        # for nsse in non_sses:
+        #     if lt[nsse] == rt[nsse]: continue
+        #     lcs = self.left.get_compounds_with_symbol(nsse)
+        #     rcs = self.right.get_compounds_with_symbol(nsse)
+        #     if len(lcs) == 1:
+        #         lc = list(lcs)[0]
+        #         for rc in rcs:
+        #             the_max = max(lc.amount_of_raw(nsse), rc.amount_of_raw(nsse))
+        #             the_gcd = gcd(lc.amount_of_raw(nsse), rc.amount_of_raw(nsse))
+        #             lc.coefficient
 
-        print(self, lt, rt)
     
     def readable(self) -> str:
         return f"{self.left.readable()} => {self.right.readable()}"
 
     def __str__(self) -> str:
         return f"{self.left} => {self.right}"
-
 
 def parse_input(inp: str):
     assert inp.find("=>") != -1
@@ -167,27 +202,38 @@ def parse_input(inp: str):
     return chem_equat
 
 def main():
-    global ce1, ce2, ce3
+    global ce1, ce2, ce3, ce4
     inp = "C3H8+O2=>H2O+CO2"
     ce1 = parse_input(inp)
-    print(ce1)
-    print(ce1.left.totals())
-    print(ce1.right.totals())
+    # print(ce1)
+    # print(ce1.left.totals())
+    # print(ce1.right.totals())
     ce1.balance()
+    print(ce1.readable())
     print("----------")
     inp = "C3H7+O2=>H2O+CO2"
     ce2 = parse_input(inp)
-    print(ce2)
-    print(ce2.left.totals())
-    print(ce2.right.totals())
+    # print(ce2)
+    # print(ce2.left.totals())
+    # print(ce2.right.totals())
     ce2.balance()
+    print(ce2.readable())
     print("----------")
     inp = "Ag2S=>Ag+S8"
     ce3 = parse_input(inp)
-    print(ce3)
-    print(ce3.left.totals())
-    print(ce3.right.totals())
+    # print(ce3)
+    # print(ce3.left.totals())
+    # print(ce3.right.totals())
     ce3.balance()
+    print(ce3.readable())
+    print("----------")
+    inp = "C12H22O11+O2=>CO2+H2O"
+    ce4 = parse_input(inp)
+    # print(ce4)
+    # print(ce4.left.totals())
+    # print(ce4.right.totals())
+    ce4.balance()
+    print(ce4.readable())
 
 if __name__  == "__main__":
     main()
