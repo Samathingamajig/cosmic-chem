@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from main import *
 import random
 import os
